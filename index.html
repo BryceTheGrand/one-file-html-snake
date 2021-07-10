@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake!</title>
+  <style>
+    canvas {
+      width: 85vmin;
+      height: 85vmin;
+      transition: 200ms ease-out;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      transition: 200ms ease-out;
+    }
+  </style>
+</head>
+
+<body style="background: rgb(25, 20, 20); display: flex; justify-content: center; align-items: center; height: 95vh;">
+  <div style="display: block; text-align: center;">
+    <h1 style="margin: 0.5em; color: white;">Bryce's Snake Game</h1>
+    <canvas id="canvas"
+      style="border: 2px solid rgb(255, 230, 220); border-radius: 7%; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);"></canvas>
+    <script>
+      let canvas, ctx;
+      let cellResolution = 15;
+      let cellWidth;
+      let snake;
+      let dir = '';
+      const FRAME_RATE = 60;
+      let food = {
+        x: 4,
+        y: 4
+      };
+      let head;
+      let currentFrame = 0;
+      let gameRate = 10;
+      let moveQueue = [];
+
+      function setup() {
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        cellWidth = Math.floor(canvas.width / (cellResolution + 2));
+        window.addEventListener('resize', resizeCanvas, false);
+        resizeCanvas();
+        document.addEventListener('keydown', keyDown);
+        snake = [{
+          x: 0,
+          y: 0
+        }];
+        head = snake[0];
+        loop();
+      }
+
+      function keyDown(e) {
+        if (e.key === 'a') {
+          if (snake.length == 1 || snake[snake.length - 1].x != snake[snake.length - 2].x + 1)
+            dir = 'W';
+          moveQueue.push(dir);
+        } else if (e.key === 's') {
+          if (snake.length == 1 || snake[snake.length - 1].y != snake[snake.length - 2].y - 1)
+            dir = 'S';
+          moveQueue.push(dir);
+        } else if (e.key === 'd') {
+          if (snake.length == 1 || snake[snake.length - 1].x != snake[snake.length - 2].x - 1)
+            dir = 'E';
+          moveQueue.push(dir);
+        } else if (e.key === 'w') {
+          if (snake.length == 1 || snake[snake.length - 1].y != snake[snake.length - 2].y + 1)
+            dir = 'N';
+          moveQueue.push(dir);
+        }
+      }
+
+      function restart() {
+        snake = [{
+          x: 0,
+          y: 0
+        }];
+        dir = '';
+      }
+
+      function resizeCanvas() {
+        if (window.innerHeight < window.innerWidth) {
+          canvas.width = window.innerHeight;
+          canvas.height = window.innerHeight;
+        } else {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerWidth;
+        }
+        cellWidth = canvas.width / (cellResolution + 2);
+      }
+
+      function drawGrid() {
+        ctx.strokeStyle = 'rgb(80, 75, 73)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i <= cellResolution; i++) {
+          ctx.beginPath();
+          if (i == 0 || i == cellResolution) {
+            ctx.moveTo(cellWidth + i * cellWidth, 1.25 * cellWidth);
+            ctx.lineTo(cellWidth + i * cellWidth, canvas.height - 1.25 * cellWidth);
+          } else {
+            ctx.moveTo(cellWidth + i * cellWidth, cellWidth);
+            ctx.lineTo(cellWidth + i * cellWidth, canvas.height - cellWidth);
+          }
+          ctx.stroke();
+        }
+        for (let i = 0; i <= cellResolution; i++) {
+          ctx.beginPath();
+          if (i == 0 || i == cellResolution) {
+            ctx.moveTo(1.25 * cellWidth, cellWidth + i * cellWidth);
+            ctx.lineTo(canvas.width - 1.25 * cellWidth, cellWidth + i * cellWidth);
+          } else {
+            ctx.moveTo(cellWidth, cellWidth + i * cellWidth);
+            ctx.lineTo(canvas.width - cellWidth, cellWidth + i * cellWidth);
+          }
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(1.25 * cellWidth, 1.25 * cellWidth, 0.25 * cellWidth, Math.PI, 1.5 * Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width - 1.25 * cellWidth, 1.25 * cellWidth, 0.25 * cellWidth, 1.5 * Math.PI, 2 * Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width - 1.25 * cellWidth, canvas.height - 1.25 * cellWidth, 0.25 * cellWidth, 0, 0.5 * Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(1.25 * cellWidth, canvas.height - 1.25 * cellWidth, 0.25 * cellWidth, 0.5 * Math.PI, Math.PI);
+        ctx.stroke();
+      }
+
+      function loop() {
+        setTimeout(function () {
+          requestAnimationFrame(loop);
+        }, 1000 / FRAME_RATE);
+
+        currentFrame += 1;
+
+        // draw background
+        ctx.fillStyle = 'rgb(25, 20, 20)';
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.fill();
+
+        // draw the grid
+        drawGrid();
+
+        // draw the food
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(255, 100, 100)'
+        ctx.arc(cellWidth * (1.5 + food.x), cellWidth * (1.5 + food.y), cellWidth * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // head location
+        head = snake[snake.length - 1];
+
+        // draw the snake
+        ctx.fillStyle = ctx.strokeStyle = 'rgb(100, 170, 140)';
+        ctx.lineWidth = 0.5 * cellWidth;
+        ctx.beginPath();
+        ctx.moveTo(cellWidth * (1.5 + snake[0].x), cellWidth * (1.5 + snake[0].y));
+        for (let i = 1; i < snake.length; i++) {
+          ctx.beginPath();
+          ctx.moveTo(cellWidth * (1.5 + snake[i - 1].x), cellWidth * (1.5 + snake[i - 1].y));
+          ctx.lineTo(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y));
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y), cellWidth * 0.25, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+
+        // draw the head
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(100, 170, 140)';
+        ctx.arc(cellWidth * (1.5 + head.x), cellWidth * (1.5 + head.y), 0.25 * cellWidth, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // draw the tail
+        ctx.beginPath();
+        ctx.fillStyle = 'rgb(100, 170, 140)';
+        ctx.arc(cellWidth * (1.5 + snake[0].x), cellWidth * (1.5 + snake[0].y), 0.25 * cellWidth, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // logic
+        if (currentFrame % gameRate == 0) {
+          if (head.x == food.x && head.y == food.y) {
+            snake.unshift({
+              x: head.x,
+              y: head.y
+            })
+            food = {
+              x: Math.floor(Math.random() * cellResolution),
+              y: Math.floor(Math.random() * cellResolution)
+            }
+          }
+
+          if (moveQueue.length == 0) {
+            switch (dir) {
+              case 'N':
+                snake.push({
+                  x: head.x,
+                  y: head.y - 1
+                });
+                snake.shift();
+                break;
+              case 'E':
+                snake.push({
+                  x: head.x + 1,
+                  y: head.y
+                });
+                snake.shift();
+                break;
+              case 'S':
+                snake.push({
+                  x: head.x,
+                  y: head.y + 1
+                });
+                snake.shift();
+                break;
+              case 'W':
+                snake.push({
+                  x: head.x - 1,
+                  y: head.y
+                });
+                snake.shift();
+                break;
+              default:
+                break;
+            }
+          } else {
+            switch (moveQueue[0]) {
+              case 'N':
+                snake.push({
+                  x: head.x,
+                  y: head.y - 1
+                });
+                snake.shift();
+                moveQueue.shift();
+                break;
+              case 'E':
+                snake.push({
+                  x: head.x + 1,
+                  y: head.y
+                });
+                snake.shift();
+                moveQueue.shift();
+                break;
+              case 'S':
+                snake.push({
+                  x: head.x,
+                  y: head.y + 1
+                });
+                snake.shift();
+                moveQueue.shift();
+                break;
+              case 'W':
+                snake.push({
+                  x: head.x - 1,
+                  y: head.y
+                });
+                snake.shift();
+                moveQueue.shift();
+                break;
+              default:
+                break;
+            }
+            console.log(moveQueue);
+          }
+
+          if (head.x > cellResolution - 1 || head.x < 0 || head.y > cellResolution - 1 || head.y < 0) {
+            restart();
+          }
+
+          for (let segment of snake) {
+            if (segment !== head) {
+              if (segment.x == head.x && segment.y == head.y) {
+                restart();
+              }
+            }
+          }
+        }
+      }
+
+      setup();
+    </script>
+  </div>
+</body>
+
+</html>
