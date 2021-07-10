@@ -10,8 +10,8 @@
   <title>Snake!</title>
   <style>
     canvas {
-      width: 85vmin;
-      height: 85vmin;
+      width: 72vmin;
+      height: 72vmin;
       transition: 200ms ease-out;
     }
 
@@ -30,26 +30,39 @@
 <body style="background: rgb(25, 20, 20); display: flex; justify-content: center; align-items: center; height: 95vh;">
   <div style="display: block; text-align: center;">
     <h1 style="margin: 0.5em; color: white;">Bryce's Snake Game</h1>
-    <h2 id="score-header" style="color: grey;">Now with mobile support!</h2>
-    <canvas id="canvas"
-      style="border: 2px solid rgb(255, 230, 220); border-radius: 7%; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);"></canvas>
+    <h2 id="score-header" style="color: grey;">This is where your score goes... But you have to start first obviously.</h2>
+    <div style="display: flex; flex-grow: 1; justify-content: center;">
+      <div class="slidecontainer" style="margin-bottom: 10px;">
+        <div style="color: grey;">Board Size</div>
+        <input type="range" name="gameRes" id="game-res" min="5" max="30" value="8" class="slider">
+      </div>
+      <div class="slidecontainer" style="margin-bottom: 10px;">
+        <div style="color: grey;">Game Speed</div>
+        <input type="range" name="gameSpeed" id="game-speed" min="6" max="24" value="17" class="slider">
+      </div>
+    </div>
+    <canvas id="canvas" width="1000px" height="1000px"
+      style="border-radius: 7%; box-shadow: 0px 0px 10px 3px rgba(255, 230, 220, 1); margin: 5px;"></canvas>
     <script>
       let canvas, ctx, score;
       let scoreValue = 0;
-      let cellResolution = 15;
+      let cellResolution = 8;
       let cellWidth;
-      let snake;
+      let snake, currentSnake = [];
+      let boardSizeSlider = document.getElementById('game-res');
+      let gameSpeedSlider = document.getElementById('game-speed');
       let dir = '';
       const FRAME_RATE = 60;
-      let food = {
-        x: 4,
-        y: 4
-      };
+      let food;
       let head;
       let currentFrame = 0;
-      let gameRate = 10;
+      let gameRate;
       let moveQueue = [];
       let highscore = 0;
+      let moveDistance = [{
+        x: 0,
+        y: 0
+      }];
 
       document.addEventListener('touchstart', handleTouchStart, false);
       document.addEventListener('touchmove', handleTouchMove, false);
@@ -61,7 +74,6 @@
         canvas = document.getElementById('canvas');
         ctx = canvas.getContext('2d');
         score = document.getElementById('score-header');
-        cellWidth = Math.floor(canvas.width / (cellResolution + 2));
         window.addEventListener('resize', resizeCanvas, false);
         resizeCanvas();
         document.addEventListener('keydown', keyDown);
@@ -70,7 +82,31 @@
           y: Math.floor(cellResolution / 2)
         }];
         head = snake[0];
+        currentSnake.push({
+          x: snake[0].x,
+          y: snake[0].y
+        });
+        food = {
+          x: Math.floor(Math.random() * cellResolution),
+          y: Math.floor(Math.random() * cellResolution)
+        };
+        gameRate = 32 - parseInt(gameSpeedSlider.value);
         loop();
+      }
+
+      boardSizeSlider.oninput = function () {
+        cellResolution = parseInt(this.value);
+        cellWidth = canvas.width / (cellResolution + 2);
+        food = {
+          x: Math.floor(Math.random() * cellResolution),
+          y: Math.floor(Math.random() * cellResolution)
+        };
+        restart();
+      }
+
+      gameSpeedSlider.oninput = function () {
+        gameRate = 32 - parseInt(this.value);
+        restart();
       }
 
       function keyDown(e) {
@@ -98,24 +134,20 @@
           x: Math.floor(cellResolution / 2),
           y: Math.floor(cellResolution / 2)
         }];
+        currentSnake = [{}];
+        currentSnake[0].x = snake[0].x;
+        currentSnake[0].y = snake[0].y;
         dir = '';
         scoreValue = 0;
         score.innerHTML = 'Score: ' + scoreValue + ', Highscore: ' + highscore;
       }
 
       function resizeCanvas() {
-        if (window.innerHeight < window.innerWidth) {
-          canvas.width = window.innerHeight;
-          canvas.height = window.innerHeight;
-        } else {
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerWidth;
-        }
         cellWidth = canvas.width / (cellResolution + 2);
       }
 
       function drawGrid() {
-        ctx.strokeStyle = 'rgb(80, 75, 73)';
+        ctx.strokeStyle = 'rgb(55, 50, 50)';
         ctx.lineWidth = 2;
         for (let i = 0; i <= cellResolution; i++) {
           ctx.beginPath();
@@ -213,7 +245,7 @@
 
         // draw the food
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(255, 100, 100)'
+        ctx.fillStyle = 'rgb(200, 80, 80)'
         ctx.arc(cellWidth * (1.5 + food.x), cellWidth * (1.5 + food.y), cellWidth * 0.15, 0, Math.PI * 2);
         ctx.fill();
 
@@ -221,42 +253,49 @@
         head = snake[snake.length - 1];
 
         // draw the snake
-        ctx.fillStyle = ctx.strokeStyle = 'rgb(100, 170, 140)';
+        ctx.fillStyle = ctx.strokeStyle = 'rgb(60, 170, 110)';
         ctx.lineWidth = 0.5 * cellWidth;
         ctx.beginPath();
         ctx.moveTo(cellWidth * (1.5 + snake[0].x), cellWidth * (1.5 + snake[0].y));
-        for (let i = 1; i < snake.length; i++) {
+        for (let i = 0; i < snake.length - 1; i++) {
           ctx.beginPath();
-          ctx.moveTo(cellWidth * (1.5 + snake[i - 1].x), cellWidth * (1.5 + snake[i - 1].y));
-          ctx.lineTo(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y));
+          if (i > 0) {
+            ctx.moveTo(cellWidth * (1.5 + snake[i - 1].x), cellWidth * (1.5 + snake[i - 1].y));
+            ctx.lineTo(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y));
+          }
           ctx.stroke();
           ctx.beginPath();
-          ctx.arc(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y), cellWidth * 0.25, 0, 2 * Math.PI);
+          ctx.arc(cellWidth * (1.5 + snake[i].x), cellWidth * (1.5 + snake[i].y), cellWidth * 0.25, 0, 2 *
+            Math.PI);
           ctx.fill();
+        }
+
+        if (snake.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(cellWidth * (1.5 + snake[snake.length - 2].x), cellWidth * (1.5 + snake[snake.length - 2].y))
+          ctx.lineTo(cellWidth * (1.5 + currentSnake[currentSnake.length - 1].x), cellWidth * (1.5 + currentSnake[
+            currentSnake.length - 1].y))
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(cellWidth * (1.5 + snake[0].x), cellWidth * (1.5 + snake[0].y))
+          ctx.lineTo(cellWidth * (1.5 + currentSnake[0].x), cellWidth * (1.5 + currentSnake[0].y))
+          ctx.stroke();
         }
 
         // draw the head
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(100, 170, 140)';
-        ctx.arc(cellWidth * (1.5 + head.x), cellWidth * (1.5 + head.y), 0.25 * cellWidth, 0, 2 * Math.PI);
+        ctx.arc(
+          cellWidth * (1.5 + currentSnake[currentSnake.length - 1].x),
+          cellWidth * (1.5 + currentSnake[currentSnake.length - 1].y),
+          0.25 * cellWidth, 0, 2 * Math.PI
+        );
         ctx.fill();
 
         // draw the tail
         ctx.beginPath();
-        ctx.fillStyle = 'rgb(100, 170, 140)';
-        ctx.arc(cellWidth * (1.5 + snake[0].x), cellWidth * (1.5 + snake[0].y), 0.25 * cellWidth, 0, 2 * Math.PI);
+        ctx.arc(cellWidth * (1.5 + currentSnake[0].x), cellWidth * (1.5 + currentSnake[0].y), 0.25 * cellWidth, 0, 2 *
+          Math.PI);
         ctx.fill();
-
-        for (let segment of snake) {
-          if (segment !== head) {
-            if (segment.x == food.x && segment.y == food.y) {
-              food = {
-                x: Math.floor(Math.random() * cellResolution),
-                y: Math.floor(Math.random() * cellResolution)
-              };
-            }
-          }
-        }
 
         // logic
         if (currentFrame % gameRate == 0) {
@@ -265,15 +304,43 @@
               x: head.x,
               y: head.y
             });
-            food = {
-              x: Math.floor(Math.random() * cellResolution),
-              y: Math.floor(Math.random() * cellResolution)
-            };
-            if (++scoreValue > highscore) {
-              highscore = scoreValue;
-              console.log('x')
+            currentSnake.push({
+              x: head.x,
+              y: head.y
+            });
+            moveDistance.push({
+              x: 0,
+              y: 0
+            });
+            let inSnake = false;
+
+            if (scoreValue == (cellResolution ** 2 - 1)) {
+              dir = '';
+              food = {
+                x: 0,
+                y: 0
+              };
+            } else {
+              do {
+                food = {
+                  x: Math.floor(Math.random() * cellResolution),
+                  y: Math.floor(Math.random() * cellResolution)
+                };
+                for (let segment of snake) {
+                  if (segment !== head) {
+                    if (segment.x == food.x && segment.y == food.y) {
+                      inSnake = true;
+                      break;
+                    }
+                    inSnake = false;
+                  }
+                }
+              } while (inSnake)
+              if (++scoreValue > highscore) {
+                highscore = scoreValue;
+              }
+              score.innerHTML = 'Score: ' + scoreValue + ', Highscore: ' + highscore;
             }
-            score.innerHTML = 'Score: ' + scoreValue + ', Highscore: ' + highscore;
           }
 
           if (moveQueue.length == 0) {
@@ -348,6 +415,11 @@
             }
           }
 
+          for (let i = 0; i < snake.length; i++) {
+            moveDistance[i].x = snake[i].x - currentSnake[i].x;
+            moveDistance[i].y = snake[i].y - currentSnake[i].y;
+          }
+
           if (head.x > cellResolution - 1 || head.x < 0 || head.y > cellResolution - 1 || head.y < 0) {
             restart();
           }
@@ -357,6 +429,19 @@
               if (segment.x == head.x && segment.y == head.y) {
                 restart();
               }
+            }
+          }
+        } else {
+          for (let i = 0; i < snake.length; i++) {
+            if (currentFrame % gameRate == gameRate - 1) {
+              currentSnake[i].x = snake[i].x;
+              currentSnake[i].y = snake[i].y;
+            }
+            if (currentSnake[i].x != snake[i].x) {
+              currentSnake[i].x += moveDistance[i].x / (gameRate - 1);
+            }
+            if (currentSnake[i].y != snake[i].y) {
+              currentSnake[i].y += moveDistance[i].y / (gameRate - 1);
             }
           }
         }
