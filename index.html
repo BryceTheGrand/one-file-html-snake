@@ -30,7 +30,8 @@
 <body style="background: rgb(25, 20, 20); display: flex; justify-content: center; align-items: center; height: 95vh;">
   <div style="display: block; text-align: center;">
     <h1 style="margin: 0.5em; color: white;">Bryce's Snake Game</h1>
-    <h2 id="score-header" style="color: grey;">This is where your score goes... But you have to start first obviously.</h2>
+    <h2 id="score-header" style="color: grey;">This is where your score goes... But you have to start first obviously.
+    </h2>
     <div style="display: flex; flex-grow: 1; justify-content: center;">
       <div class="slidecontainer" style="margin-bottom: 10px;">
         <div style="color: grey;">Board Size</div>
@@ -40,10 +41,15 @@
         <div style="color: grey;">Game Speed</div>
         <input type="range" name="gameSpeed" id="game-speed" min="6" max="24" value="17" class="slider">
       </div>
+      <div class="buttoncontainer" style="margin: 10px; margin-top: 5px;">
+        <button id="goFS">Go Fullscreen</button>
+      </div>
     </div>
     <canvas id="canvas" width="1000px" height="1000px"
       style="border-radius: 7%; box-shadow: 0px 0px 10px 3px rgba(255, 230, 220, 1); margin: 5px;"></canvas>
     <script>
+      let goFS = document.getElementById('goFS');
+      goFS.addEventListener('click', toggleFullScreen, false);
       let canvas, ctx, score;
       let scoreValue = 0;
       let cellResolution = 8;
@@ -69,6 +75,23 @@
 
       let xDown = null;
       let yDown = null;
+
+      function toggleFullScreen() {
+        let doc = window.document;
+        let docEl = doc.documentElement;
+
+        var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl
+          .webkitRequestFullScreen || docEl.msRequestFullscreen;
+        var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc
+          .msExitFullscreen;
+
+        if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc
+          .msFullscreenElement) {
+          requestFullScreen.call(docEl);
+        } else {
+          cancelFullScreen.call(doc);
+        }
+      }
 
       function setup() {
         canvas = document.getElementById('canvas');
