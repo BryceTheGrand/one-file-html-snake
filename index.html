@@ -30,11 +30,12 @@
 <body style="background: rgb(25, 20, 20); display: flex; justify-content: center; align-items: center; height: 95vh;">
   <div style="display: block; text-align: center;">
     <h1 style="margin: 0.5em; color: white;">Bryce's Snake Game</h1>
-    <h2 style="color: grey;">Now with mobile support!</h2>
+    <h2 id="score-header" style="color: grey;">Now with mobile support!</h2>
     <canvas id="canvas"
       style="border: 2px solid rgb(255, 230, 220); border-radius: 7%; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);"></canvas>
     <script>
-      let canvas, ctx;
+      let canvas, ctx, score;
+      let scoreValue = 0;
       let cellResolution = 15;
       let cellWidth;
       let snake;
@@ -48,6 +49,7 @@
       let currentFrame = 0;
       let gameRate = 10;
       let moveQueue = [];
+      let highscore = 0;
 
       document.addEventListener('touchstart', handleTouchStart, false);
       document.addEventListener('touchmove', handleTouchMove, false);
@@ -58,6 +60,7 @@
       function setup() {
         canvas = document.getElementById('canvas');
         ctx = canvas.getContext('2d');
+        score = document.getElementById('score-header');
         cellWidth = Math.floor(canvas.width / (cellResolution + 2));
         window.addEventListener('resize', resizeCanvas, false);
         resizeCanvas();
@@ -96,6 +99,8 @@
           y: Math.floor(cellResolution / 2)
         }];
         dir = '';
+        scoreValue = 0;
+        score.innerHTML = 'Score: ' + scoreValue + ', Highscore: ' + highscore;
       }
 
       function resizeCanvas() {
@@ -244,11 +249,12 @@
 
         for (let segment of snake) {
           if (segment !== head) {
-            if (segment.x == food.x && segment.y == food.y)
+            if (segment.x == food.x && segment.y == food.y) {
               food = {
                 x: Math.floor(Math.random() * cellResolution),
                 y: Math.floor(Math.random() * cellResolution)
-              }
+              };
+            }
           }
         }
 
@@ -258,11 +264,16 @@
             snake.unshift({
               x: head.x,
               y: head.y
-            })
+            });
             food = {
               x: Math.floor(Math.random() * cellResolution),
               y: Math.floor(Math.random() * cellResolution)
+            };
+            if (++scoreValue > highscore) {
+              highscore = scoreValue;
+              console.log('x')
             }
+            score.innerHTML = 'Score: ' + scoreValue + ', Highscore: ' + highscore;
           }
 
           if (moveQueue.length == 0) {
